@@ -1,4 +1,4 @@
-package usermanagement.userManagement.repository;
+package usermanagement.userManagement.exception;
 
 public class UserNotFoundException extends Throwable {
     public UserNotFoundException(String s) {

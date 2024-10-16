@@ -26,12 +26,13 @@ public class RedisService {
     }
 
     // Retrieve a single field from a hash
-    public Object hGet(String hashKey, String field) throws RedisCustomeException {
+    public Object hGet(String hashKey, String field)  {
         try {
             return redisTemplate.opsForHash().get(hashKey, field);
         } catch (Exception e) {
-            throw new RedisCustomeException("Exception occurred while fetching data");
+            //throw new RedisCustomeException("Exception occurred while fetching data");
         }
+        return null;
     }
 
     // Retrieve all fields and values from a hash
