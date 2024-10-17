@@ -23,31 +23,38 @@ spring:
     host: localhost
     port: 6379
     hashKey: usermanagement
-  resilience4j:
-    ratelimiter:
+resilience4j:
+  ratelimiter:
+    default:
+      limit-for-period: 10
+      limit-refresh-period: 1s
+      limit-for-burst: 5
+    instances:
+      createUserRateLimiter:
+        baseConfig: default
+      getUserRateLimiter:
+        baseConfig: default
+      updateUserRateLimiter:
+        baseConfig: default
+      deleteUserRateLimiter:
+        baseConfig: default
+  retry:
+    configs:
       default:
-        limit-for-period: 10
-        limit-refresh-period: 1s
-        limit-for-burst: 5
-      instances:
-        createUserRateLimiter:
-         baseConfig: default
-        getUserRateLimiter:
-          baseConfig: default
-        updateUserRateLimiter:
-          baseConfig: default
-        deleteUserRateLimiter:
-          baseConfig: default
-#    retry:
-#      configs:
-#        default:
-#          maxAttempts: 3
-#          waitDuration: 1000
-#          enableExponentialBackoff: true
-#          exponentialBackoffMultiplier: 2
-#      instances:
-#        createUserRetry:
-#          baseConfig: default
+        maxAttempts: 3
+        waitDuration: 1000
+        enableExponentialBackoff: true
+        exponentialBackoffMultiplier: 2
+    instances:
+      createUserRetry:
+        baseConfig: default
+      getUserRetry:
+        baseConfig: default
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
 
   logging:
     level:

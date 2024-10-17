@@ -15,25 +15,13 @@ public class Config {
     public RedisTemplate<String, Object> redisTemplateObjetValue(RedisConnectionFactory connectionFactory) {
         RedisTemplate<String, Object> template = new RedisTemplate<>();
         template.setConnectionFactory(connectionFactory);
-
-        // Set the default serializer for values
-        template.setValueSerializer(redisSerializer());
-        // Optionally, you can set the key serializer
-        template.setKeySerializer(RedisSerializer.string());
+        // Use JSON serializer for values
+        RedisSerializer<Object> serializer = new GenericJackson2JsonRedisSerializer();
+        template.setValueSerializer(serializer);
+        template.setHashValueSerializer(serializer);
 
         return template;
     }
-
-    @Bean
-    public RedisTemplate<String, Integer> redisTemplateIntegerValue(RedisConnectionFactory redisConnectionFactory) {
-        RedisTemplate<String, Integer> template = new RedisTemplate<>();
-        template.setConnectionFactory(redisConnectionFactory);
-        // Optionally configure serializers
-        template.setKeySerializer(new StringRedisSerializer());
-        template.setValueSerializer(new GenericJackson2JsonRedisSerializer());
-        return template;
-    }
-
 
     @Bean
     public RedisSerializer<Object> redisSerializer() {

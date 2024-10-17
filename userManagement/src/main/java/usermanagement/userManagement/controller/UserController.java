@@ -1,20 +1,22 @@
 package usermanagement.userManagement.controller;
 
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
-import jakarta.persistence.criteria.CriteriaBuilder;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatusCode;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import usermanagement.userManagement.exception.InternalServerException;
 import usermanagement.userManagement.exception.UserAlreadyExistsException;
+import usermanagement.userManagement.exception.UserNotFoundException;
 import usermanagement.userManagement.exception.ValidationException;
 import usermanagement.userManagement.model.Response;
 import usermanagement.userManagement.model.User;
-import usermanagement.userManagement.exception.UserNotFoundException;
 import usermanagement.userManagement.service.UserService;
 import usermanagement.userManagement.utils.Utils;
 
+@Slf4j
 @RestController
 @RequestMapping("/users")
 public class UserController {
@@ -22,12 +24,13 @@ public class UserController {
     @Autowired
     private UserService userService;
 
-    @PostMapping
+    @PostMapping( produces = MediaType.APPLICATION_JSON_VALUE)
     @RateLimiter(name = "createUserRateLimiter")
     public ResponseEntity<?> createUser(@RequestBody User user) {
         User createdUser = null;
         Response response = null;
         try {
+            log.info("Create User Controller");
             createdUser = userService.createUser(user);
         } catch (UserAlreadyExistsException e) {
             response = Utils.generateResponse("Failed", e.getMessage(), 400);
@@ -108,7 +111,7 @@ public class UserController {
             return new ResponseEntity<>(response, HttpStatusCode.valueOf(500));
         }
         response = Utils.generateResponse("Success", "Deleted Successfully", 200);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(response);
     }
 }
 

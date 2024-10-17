@@ -1,8 +1,5 @@
 package usermanagement.userManagement.service;
 
-import io.lettuce.core.RedisException;
-import org.springframework.stereotype.Service;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
@@ -26,7 +23,7 @@ public class RedisService {
     }
 
     // Retrieve a single field from a hash
-    public Object hGet(String hashKey, String field)  {
+    public Object hGet(String hashKey, String field) {
         try {
             return redisTemplate.opsForHash().get(hashKey, field);
         } catch (Exception e) {

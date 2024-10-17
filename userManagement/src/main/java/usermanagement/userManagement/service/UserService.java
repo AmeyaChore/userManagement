@@ -1,6 +1,8 @@
 package usermanagement.userManagement.service;
 
 import io.github.resilience4j.retry.annotation.Retry;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.retry.annotation.Backoff;
@@ -20,6 +22,7 @@ import java.util.concurrent.CompletableFuture;
 @Service
 public class UserService {
 
+    private static final Logger log = LogManager.getLogger(UserService.class);
     @Autowired
     private ValidateUser validateUser;
 
@@ -33,11 +36,12 @@ public class UserService {
     private String userKey;
 
     @Retryable(
-            retryFor = {Exception.class, RuntimeException.class},
+            value = {Exception.class, RuntimeException.class},
             maxAttempts = 3,
             backoff = @Backoff(delay = 2000))
     @Transactional(isolation = Isolation.READ_UNCOMMITTED)
     public User createUser(User user) throws UserAlreadyExistsException, ValidationException {
+        log.info("create user {}", user);
         validateUser.validateUser(user);
         Optional<User> alreadyPresentOrNot = userRepository.getUserByUserNameOrEmail(user.getEmail(), user.getUsername());
         if (alreadyPresentOrNot.isPresent()) {
@@ -48,6 +52,7 @@ public class UserService {
             try {
                 redisService.hSet(userKey, user.getId().toString(), savedUser);
             } catch (RedisCustomeException e) {
+                log.error("Exception occured in create user while adding data in redis server");
                 //Ignore Exception
             }
         });
@@ -55,15 +60,18 @@ public class UserService {
     }
 
     @Retryable(
-            retryFor = {Exception.class, InternalServerException.class},
+            exclude = {UserNotFoundException.class},
+            value = {InternalServerException.class, RuntimeException.class},
             maxAttempts = 3,
             backoff = @Backoff(delay = 2000))
     public User getUserById(Long id) throws UserNotFoundException {
+        log.info("get User by id:-"+ id);
         User savedUser = null;
         try {
-            Object userInCache = userInCache = redisService.hGet(userKey, id.toString());
+            Object userInCache = redisService.hGet(userKey, id.toString());
+            log.info("Data from redis server {}", userInCache);
             if (Objects.isNull(userInCache)) {
-                Optional<User> optionalUser = userRepository.findById(id);
+                Optional<User> optionalUser = userRepository.getUserById(id);
                 if (optionalUser.isEmpty()) {
                     throw new UserNotFoundException("User does not exists with userId:- " + id);
                 }
@@ -73,15 +81,16 @@ public class UserService {
             } else {
                 savedUser = (User) userInCache;
             }
-        }catch (RedisCustomeException e) {
-        throw new InternalServerException("Internal Server Exception");
-    }
+        } catch (RedisCustomeException e) {
+            throw new InternalServerException("Internal Server Exception");
+        }
         return savedUser;
     }
 
 
     @Retryable(
-            retryFor = {Exception.class, InternalServerException.class},
+            exclude = {UserNotFoundException.class, ValidationException.class},
+            value = {InternalServerException.class, RuntimeException.class},
             maxAttempts = 3,
             backoff = @Backoff(delay = 2000))
     @Transactional(isolation = Isolation.SERIALIZABLE)
@@ -105,12 +114,14 @@ public class UserService {
 
 
     @Retryable(
-            retryFor = {Exception.class, InternalServerException.class},
+            exclude = {UserNotFoundException.class},
+            value = {InternalServerException.class, RuntimeException.class},
             maxAttempts = 3,
             backoff = @Backoff(delay = 2000))
     @Transactional(isolation = Isolation.SERIALIZABLE)
     public void deleteUser(Long id) throws UserNotFoundException {
         Optional<User> optionalUser = userRepository.getUserById(id);
+        log.info("delete user details for user id:-"+ id);
         if(optionalUser.isEmpty()){
             throw new UserNotFoundException("User does not exists with userId:- "+ id );
         }
@@ -119,7 +130,7 @@ public class UserService {
         } catch (RedisCustomeException e) {
             throw new InternalServerException("Internal Server Exception");
         }
-        userRepository.deleteById(id);
+        userRepository.delete(optionalUser.get());
     }
 }
 
